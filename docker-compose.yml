@@ -1,0 +1,16 @@
+services:
+  freeocr:
+    build: .
+    image: free-ocr-api
+    ports:
+      - "8000:8000"
+    environment:
+      WORKERS: "2"
+      FREEOCR_MAX_MB: "25"
+      # FREEOCR_API_KEY: "change-me"            # require X-API-Key header
+      # FREEOCR_DAYFIRST: "true"                # force 31/12/2026 style dates
+      # FREEOCR_LLM_URL: "http://ollama:11434/v1"   # optional local model assist
+      # FREEOCR_LLM_MODEL: "your-model"
+    volumes:
+      - ./templates:/app/templates
+    restart: unless-stopped

@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "free-ocr-api"
+version = "1.0.0"
+description = "Free self-hosted OCR & document data extraction API. Turn PDFs, scans, invoices, receipts and bank statements into JSON, CSV or Excel. No API keys, no cloud."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [{name = "Ethos6"}]
+keywords = ["ocr", "ocr-api", "document-extraction", "invoice-parser", "receipt-ocr", "pdf-extraction",
+            "bank-statement-parser", "data-entry", "tesseract", "self-hosted", "fastapi", "mcp-server"]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Framework :: FastAPI",
+  "Topic :: Scientific/Engineering :: Image Recognition",
+  "Topic :: Office/Business :: Financial :: Accounting",
+]
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27",
+  "python-multipart>=0.0.9",
+  "pdfplumber>=0.11",
+  "pypdfium2>=4.0",
+  "pillow>=10.0",
+  "pytesseract>=0.3.10",
+  "openpyxl>=3.1",
+  "pyyaml>=6.0",
+  "httpx>=0.25",
+]
+
+[project.optional-dependencies]
+rapidocr = ["rapidocr-onnxruntime>=1.3"]
+dev = ["pytest>=7", "reportlab>=4", "rapidocr-onnxruntime>=1.3"]
+
+[project.scripts]
+freeocr = "freeocr.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Ethos6/free-ocr-api"
+Issues = "https://github.com/Ethos6/free-ocr-api/issues"
+
+[tool.setuptools.packages.find]
+include = ["freeocr*"]
+
+[tool.setuptools.package-data]
+freeocr = ["web/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
