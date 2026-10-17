@@ -13,8 +13,8 @@ jobs:
       matrix:
         python: ["3.10", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       - name: Install Tesseract
@@ -29,10 +29,27 @@ jobs:
           freeocr extract /tmp/samples -o /tmp/out.xlsx
           freeocr extract /tmp/samples/invoice.pdf -f md
 
+  test-rapidocr:
+    name: test (pure-Python OCR, no Tesseract)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install package with RapidOCR
+        run: pip install -e ".[dev,rapidocr]"
+      - name: Run tests
+        env:
+          FREEOCR_ENGINE: rapidocr
+        run: |
+          python -c "from freeocr.ocr import rapidocr_available as ok; assert ok()"
+          pytest -v
+
   docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build image
         run: docker build -t free-ocr-api .
       - name: Run container and extract a document
