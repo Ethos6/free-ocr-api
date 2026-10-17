@@ -1,0 +1,12 @@
+# Custom template example. Copy this file, rename it and edit the fields.
+# Templates in ./templates are loaded automatically (set FREEOCR_TEMPLATES to change the folder).
+name: northwind-invoice
+description: Invoices from Northwind Supplies (the sample invoice)
+match: ["Northwind Supplies"]        # auto-apply when this text appears
+fields:
+  invoice_number: {label: ["Invoice No", "Invoice #"], type: id, required: true}
+  invoice_date:   {label: "Invoice Date", type: date}
+  order_ref:      {regex: "(PO-\\d{3,})", type: string}
+  vat_number:     {regex: "VAT No:\\s*(GB\\d{9})"}
+  total_due:      {label: "Total Due", type: amount, required: true}
+  net_30:         {regex: "Net 30", type: bool}
