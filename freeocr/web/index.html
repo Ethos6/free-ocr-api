@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>free-ocr-api · Document Extractor</title>
+<style>
+  :root{--bg:#f6f7fb;--card:#fff;--ink:#1d2333;--mut:#667085;--line:#e4e7ef;--acc:#3056d3;--acc2:#e9efff;--ok:#127a3a;--warn:#a15c00}
+  @media (prefers-color-scheme:dark){:root{--bg:#0f1220;--card:#181c2e;--ink:#e8ebf5;--mut:#9aa3b8;--line:#2a3048;--acc:#7c9cff;--acc2:#1f2a4d;--ok:#5fd38d;--warn:#ffb54d}}
+  [hidden]{display:none!important}
+  *{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:22px 20px 8px;max-width:1150px;margin:auto}h1{margin:0;font-size:24px}h1 span{color:var(--acc)}
+  header p{margin:4px 0 0;color:var(--mut)}main{max-width:1150px;margin:auto;padding:12px 20px 60px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+  #drop{border:2px dashed var(--line);border-radius:14px;padding:34px;text-align:center;cursor:pointer;transition:.15s}
+  #drop.over{border-color:var(--acc);background:var(--acc2)}#drop b{color:var(--acc)}
+  .opts{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px;align-items:end}
+  label{font-size:13px;color:var(--mut);display:flex;flex-direction:column;gap:4px}
+  select,input[type=text],input[type=password]{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+  .chk{flex-direction:row;align-items:center;gap:6px;color:var(--ink)}
+  button{padding:9px 16px;border:0;border-radius:8px;background:var(--acc);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+  button.ghost{background:var(--acc2);color:var(--acc)}button:disabled{opacity:.5;cursor:default}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .doc{border:1px solid var(--line);border-radius:12px;margin-top:14px;overflow:hidden}
+  .doc h3{margin:0;padding:12px 14px;font-size:15px;background:var(--acc2);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .pill{font-size:12px;padding:2px 8px;border-radius:99px;background:var(--card);color:var(--mut);font-weight:500}
+  .tabs{display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--line);overflow-x:auto}
+  .tabs button{background:none;color:var(--mut);border-radius:8px 8px 0 0;padding:7px 12px;font-weight:500}
+  .tabs button.on{color:var(--acc);box-shadow:inset 0 -2px var(--acc)}
+  .pane{padding:12px 14px;overflow-x:auto}.pane[hidden]{display:none}
+  table{border-collapse:collapse;width:100%;font-size:14px}th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+  th{color:var(--mut);font-weight:600;white-space:nowrap}td[contenteditable]{outline:none}td[contenteditable]:focus{background:var(--acc2)}
+  pre{white-space:pre-wrap;word-break:break-word;margin:0;font:13px/1.45 ui-monospace,Menlo,Consolas,monospace}
+  .conf{font-size:12px;color:var(--mut)}.warn{color:var(--warn);font-size:13px;margin:6px 0 0}
+  .muted{color:var(--mut);font-size:13px}#status{min-height:22px}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--acc);border-radius:50%;animation:s 1s linear infinite;vertical-align:-2px}
+  @keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>free-ocr-<span>api</span></h1>
+  <p>Drop PDFs, scans or photos → get clean fields, line items and tables. Review, fix and export to Excel / CSV / JSON. Everything runs on this server.</p>
+</header>
+<main>
+  <section class="card">
+    <div id="drop" tabindex="0" role="button" aria-label="Choose files">
+      <div style="font-size:34px">📄</div>
+      <div><b>Click to choose</b> or drag &amp; drop files here</div>
+      <div class="muted">PDF, PNG, JPG, TIFF, WEBP, TXT · invoices, receipts, bank statements, payslips, POs, resumes, IDs, forms</div>
+      <input id="file" type="file" multiple hidden accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.bmp,.webp,.gif,.txt">
+    </div>
+    <div class="opts">
+      <label>Document type<select id="doc_type"><option value="auto">Auto-detect</option></select></label>
+      <label>Language<input id="lang" type="text" value="eng" size="10" title="Tesseract codes, e.g. eng, hin, deu, fra, spa, eng+hin"></label>
+      <label>Template<select id="template"><option value="">Auto</option></select></label>
+      <label>Dates<select id="dayfirst"><option value="">Auto</option><option value="true">Day first (31/12)</option><option value="false">Month first (12/31)</option></select></label>
+      <label>Extra fields<input id="fields" type="text" placeholder="e.g. order_id, store_code" size="22"></label>
+      <label class="chk"><input id="redact" type="checkbox"> Redact personal data</label>
+      <label class="chk" id="llmbox" hidden><input id="use_llm" type="checkbox"> Model assist</label>
+      <label id="keybox" hidden>API key<input id="apikey" type="password" size="16"></label>
+      <button id="go" disabled>Extract</button>
+    </div>
+    <div id="status" class="muted" style="margin-top:10px"></div>
+  </section>
+
+  <section class="card" id="results" hidden>
+    <div class="row" style="justify-content:space-between">
+      <strong id="count"></strong>
+      <div class="row">
+        <button class="ghost" data-exp="xlsx">⬇ Excel</button>
+        <button class="ghost" data-exp="csv">⬇ CSV</button>
+        <button class="ghost" data-exp="json">⬇ JSON</button>
+        <button class="ghost" id="clear">Clear</button>
+      </div>
+    </div>
+    <p class="muted" style="margin:6px 0 0">Tip: click any value to correct it — exports include your edits.</p>
+    <div id="docs"></div>
+  </section>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+let files = [], results = [], info = {};
+const esc = v => String(v ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = v => Array.isArray(v) ? v.join("; ") : (v && typeof v === "object") ? JSON.stringify(v) : (v ?? "");
+function key(){ try { return localStorage.getItem("freeocr_key") || ""; } catch(e){ return ""; } }
+function headers(){ const k = $("#apikey").value || key(); return k ? {"X-API-Key": k} : {}; }
+
+fetch("/v1/info").then(r => r.json()).then(i => {
+  info = i;
+  i.doc_types.forEach(t => $("#doc_type").insertAdjacentHTML("beforeend", `<option>${t}</option>`));
+  i.templates.forEach(t => $("#template").insertAdjacentHTML("beforeend", `<option>${esc(t)}</option>`));
+  $("#llmbox").hidden = !i.llm_assist; $("#keybox").hidden = !i.auth_required; $("#apikey").value = key();
+  if (!i.engines.length) $("#status").textContent = "⚠ No OCR engine installed on the server - scanned files will fail (digital PDFs still work).";
+});
+
+const drop = $("#drop"), input = $("#file");
+drop.onclick = () => input.click();
+drop.onkeydown = e => (e.key === "Enter" || e.key === " ") && input.click();
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => pick(e.dataTransfer.files));
+input.onchange = () => pick(input.files);
+function pick(list){ files = [...list]; $("#go").disabled = !files.length;
+  $("#status").textContent = files.length ? `${files.length} file(s) ready: ${files.map(f => f.name).slice(0,5).join(", ")}${files.length > 5 ? "…" : ""}` : ""; }
+
+$("#go").onclick = async () => {
+  $("#go").disabled = true; results = [];
+  try { if ($("#apikey").value) localStorage.setItem("freeocr_key", $("#apikey").value); } catch(e){}
+  for (let i = 0; i < files.length; i++) {
+    $("#status").innerHTML = `<span class="spin"></span> Processing ${i+1}/${files.length}: ${esc(files[i].name)}`;
+    const fd = new FormData(); fd.append("file", files[i]);
+    ["doc_type","lang","template","dayfirst","fields"].forEach(k => $("#"+k).value && fd.append(k, $("#"+k).value));
+    fd.append("redact", $("#redact").checked); fd.append("use_llm", $("#use_llm").checked);
+    try {
+      const r = await fetch("/v1/extract", {method:"POST", body:fd, headers:headers()});
+      const j = await r.json();
+      results.push(r.ok ? j : {file: files[i].name, error: j.detail || r.statusText});
+    } catch (e) { results.push({file: files[i].name, error: String(e)}); }
+    render();
+  }
+  $("#status").textContent = `Done - ${results.filter(r => !r.error).length}/${results.length} extracted.`;
+  $("#go").disabled = false;
+};
+
+function table(rows, idx, kind){
+  if (!rows.length) return '<p class="muted">Nothing detected.</p>';
+  const cols = [...new Set(rows.flatMap(Object.keys))];
+  return `<table><tr>${cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr>${rows.map((r, ri) =>
+    `<tr>${cols.map(c => `<td contenteditable data-d="${idx}" data-k="${kind}" data-r="${ri}" data-c="${esc(c)}">${esc(fmt(r[c]))}</td>`).join("")}</tr>`).join("")}</table>`;
+}
+
+function render(){
+  $("#results").hidden = !results.length;
+  $("#count").textContent = `${results.length} document(s)`;
+  $("#docs").innerHTML = results.map((d, i) => {
+    if (d.error) return `<div class="doc"><h3>${esc(d.file)} <span class="pill">error</span></h3><div class="pane warn">${esc(d.error)}</div></div>`;
+    const f = d.fields || {}, conf = d.field_confidence || {};
+    const ftab = Object.keys(f).length ? `<table><tr><th>Field</th><th>Value</th><th>Confidence</th></tr>${Object.entries(f).map(([k, v]) =>
+      `<tr><th>${esc(k)}</th><td contenteditable data-d="${i}" data-k="fields" data-c="${esc(k)}">${esc(fmt(v))}</td><td class="conf">${conf[k] != null ? Math.round(conf[k]*100)+"%" : ""}</td></tr>`).join("")}</table>` : '<p class="muted">No fields - try a template or the Extra fields box.</p>';
+    const tabs = [["Fields", ftab], [d.doc_type === "bank_statement" ? "Transactions" : d.doc_type === "resume" ? "Sections" : "Line items", table(d.line_items || [], i, "line_items")],
+      ["Key / values", table(d.key_values || [], i, "kv")], ["Tables", (d.tables || []).map(t => `<table>${t.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</table>`).join("<br>") || '<p class="muted">No ruled tables found.</p>'],
+      ["Entities", `<pre>${esc(JSON.stringify(d.entities, null, 2))}</pre>`], ["Text", `<pre>${esc(d.text)}</pre>`], ["JSON", `<pre>${esc(JSON.stringify(d, null, 2))}</pre>`]];
+    return `<div class="doc"><h3><span>${esc(d.file)}</span><span><span class="pill">${esc(d.doc_type)} · ${Math.round(d.doc_type_confidence*100)}%</span>
+      <span class="pill">${d.page_count} page(s)</span><span class="pill">${esc(d.methods.join(", "))}</span><span class="pill">${d.elapsed_ms} ms</span></span></h3>
+      <div class="tabs">${tabs.map((t, ti) => `<button class="${ti ? "" : "on"}" data-t="${ti}">${t[0]}</button>`).join("")}</div>
+      ${tabs.map((t, ti) => `<div class="pane" data-p="${ti}" ${ti ? "hidden" : ""}>${t[1]}</div>`).join("")}
+      ${(d.warnings || []).map(w => `<p class="warn pane">⚠ ${esc(w)}</p>`).join("")}</div>`;
+  }).join("");
+}
+
+$("#docs").addEventListener("click", e => {
+  const b = e.target.closest(".tabs button"); if (!b) return;
+  const doc = b.closest(".doc");
+  doc.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
+  doc.querySelectorAll(".pane[data-p]").forEach(p => p.hidden = p.dataset.p !== b.dataset.t);
+});
+$("#docs").addEventListener("input", e => {
+  const td = e.target.closest("td[contenteditable]"); if (!td) return;
+  const d = results[+td.dataset.d], v = td.innerText.trim();
+  if (td.dataset.k === "fields") d.fields[td.dataset.c] = v;
+  else if (td.dataset.k === "line_items") d.line_items[+td.dataset.r][td.dataset.c] = v;
+  else if (td.dataset.k === "kv") d.key_values[+td.dataset.r][td.dataset.c] = v;
+});
+$("#clear").onclick = () => { results = []; files = []; input.value = ""; render(); $("#status").textContent = ""; $("#go").disabled = true; };
+
+function save(blob, name){ const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+function csvCell(v){ v = String(fmt(v)); return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; }
+document.querySelectorAll("[data-exp]").forEach(b => b.onclick = async () => {
+  const ok = results.filter(r => !r.error), t = b.dataset.exp;
+  if (t === "json") return save(new Blob([JSON.stringify(ok.length === 1 ? ok[0] : ok, null, 2)], {type:"application/json"}), "extracted.json");
+  if (t === "csv") {
+    const cols = ["file", "doc_type", ...new Set(ok.flatMap(r => Object.keys(r.fields || {})))];
+    const lines = [cols.join(","), ...ok.map(r => cols.map(c => csvCell(c in r.fields ? r.fields[c] : r[c])).join(","))];
+    return save(new Blob(["﻿" + lines.join("\n")], {type:"text/csv"}), "extracted.csv");
+  }
+  // Excel: server builds the workbook from the (edited) results
+  const r = await fetch("/v1/export/xlsx", {method:"POST", headers:{"Content-Type":"application/json", ...headers()}, body: JSON.stringify(ok)});
+  if (r.ok) save(await r.blob(), "extracted.xlsx"); else alert("Export failed: " + r.statusText);
+});
+</script>
+</body>
+</html>
