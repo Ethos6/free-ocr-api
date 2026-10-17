@@ -7,7 +7,7 @@ Strategy:
 
 OCR engines (picked automatically, or forced with ``engine=``):
   * ``tesseract``  - needs the ``tesseract`` binary (100+ languages)
-  * ``rapidocr``   - pure pip install (``pip install rapidocr-onnxruntime``)
+  * ``rapidocr``   - pure pip install (``pip install rapidocr onnxruntime``)
 """
 
 from __future__ import annotations
@@ -64,12 +64,9 @@ def tesseract_available() -> bool:
 
 
 def rapidocr_available() -> bool:
-    try:
-        import rapidocr_onnxruntime  # noqa: F401
+    import importlib.util
 
-        return True
-    except Exception:
-        return False
+    return any(importlib.util.find_spec(m) is not None for m in ("rapidocr", "rapidocr_onnxruntime"))
 
 
 def available_engines() -> list[str]:
@@ -131,15 +128,26 @@ def _ocr_tesseract(img: Image.Image, lang: str) -> tuple[str, float | None]:
 
 @lru_cache(maxsize=1)
 def _rapid():
-    from rapidocr_onnxruntime import RapidOCR
-
+    try:  # rapidocr >= 2 (current package name)
+        from rapidocr import RapidOCR
+    except ImportError:  # legacy package
+        from rapidocr_onnxruntime import RapidOCR
     return RapidOCR()
+
+
+def _rapid_results(arr) -> list:
+    out = _rapid()(arr)
+    if isinstance(out, tuple):  # legacy: ([(box, text, score), ...], elapsed)
+        return list(out[0] or [])
+    if getattr(out, "txts", None) is None:
+        return []
+    return list(zip(out.boxes, out.txts, out.scores))
 
 
 def _ocr_rapid(img: Image.Image) -> tuple[str, float | None]:
     import numpy as np
 
-    result, _ = _rapid()(np.array(img.convert("RGB")))
+    result = _rapid_results(np.array(img.convert("RGB")))
     if not result:
         return "", None
     # group boxes into lines by vertical centre
