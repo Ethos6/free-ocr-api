@@ -4,7 +4,7 @@ Thanks for helping! Bug reports with a sample document (remove personal data fir
 
 ```bash
 git clone https://github.com/Ethos6/free-ocr-api && cd free-ocr-api
-pip install -e ".[dev]"          # needs tesseract installed, or uses rapidocr
+pip install -e ".[dev]"          # needs tesseract installed (or: pip install -e ".[dev,rapidocr]")
 pytest
 freeocr serve                    # http://localhost:8000
 ```

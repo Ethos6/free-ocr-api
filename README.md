@@ -99,10 +99,12 @@ Add OCR languages at build time: `docker build --build-arg OCR_LANGS="hin deu fr
 # 1) an OCR engine (only needed for scans/photos - digital PDFs work without one)
 sudo apt install tesseract-ocr        # macOS: brew install tesseract  · Windows: choco install tesseract
 #    ...or skip Tesseract and use the pure-Python engine:
-pip install "rapidocr-onnxruntime"
+pip install rapidocr onnxruntime
 
 # 2) free-ocr-api
-pip install git+https://github.com/Ethos6/free-ocr-api
+pip install "free-ocr-api @ git+https://github.com/Ethos6/free-ocr-api"
+# with the pure-Python OCR engine bundled:
+pip install "free-ocr-api[rapidocr] @ git+https://github.com/Ethos6/free-ocr-api"
 freeocr serve                          # http://127.0.0.1:8000
 ```
 

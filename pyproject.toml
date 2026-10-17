@@ -33,8 +33,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-rapidocr = ["rapidocr-onnxruntime>=1.3"]
-dev = ["pytest>=7", "reportlab>=4", "rapidocr-onnxruntime>=1.3"]
+rapidocr = ["rapidocr>=2.0", "onnxruntime>=1.16"]
+dev = ["pytest>=7", "reportlab>=4"]
 
 [project.scripts]
 freeocr = "freeocr.cli:main"
