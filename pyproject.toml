@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "free-ocr-api"
-version = "1.0.0"
+version = "1.1.0"
 description = "Free self-hosted OCR & document data extraction API. Turn PDFs, scans, invoices, receipts and bank statements into JSON, CSV or Excel. No API keys, no cloud."
 readme = "README.md"
 license = {text = "MIT"}

@@ -7,6 +7,7 @@
 **Turn PDFs, scans and phone photos of invoices, receipts, bank statements, payslips and forms into clean JSON, CSV or Excel. No API keys, no cloud, no per-page fees.**
 
 [![CI](https://github.com/Ethos6/free-ocr-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Ethos6/free-ocr-api/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Ethos6/free-ocr-api)](https://github.com/Ethos6/free-ocr-api/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 [![Docker](https://img.shields.io/badge/docker-ready-2496ED.svg?logo=docker&logoColor=white)](#-quick-start)
@@ -14,7 +15,9 @@
 
 [Quick start](#-quick-start) · [API](#-rest-api) · [Data-entry autopilot](#-data-entry-autopilot-watch-a-folder) · [Templates](#-custom-templates) · [CLI](#-cli) · [MCP](#-mcp-server)
 
-<img src="docs/screenshot.png" alt="free-ocr-api web UI" width="850">
+<img src="docs/demo.gif" alt="free-ocr-api extracting an invoice, a receipt and a bank statement" width="850">
+
+<sub>Real extraction of the bundled sample documents (fictional companies). Re-record with <code>python scripts/record_demo.py</code>.</sub>
 
 </div>
 
@@ -68,6 +71,7 @@ curl -F file=@invoice.pdf localhost:8000/v1/extract
 | 📥 **Excel / CSV / JSON / Markdown** | Batch export gives one row per document plus a *Line items* sheet. Ready for Excel, Google Sheets and accounting tools. |
 | 🤖 **Data-entry autopilot** | `freeocr watch ./inbox` keeps a spreadsheet up to date as files land in a folder |
 | ✏️ **Review & correct UI** | Drag-and-drop web app where you click any value to fix it, and the exports include your edits |
+| 📑 **Searchable PDFs** | Turns scans and photos into PDFs with an invisible, selectable text layer, so you can search, select and copy the text. Pages that already have text are copied through untouched. |
 | 🕵️ **PII redaction** | Masks emails, phones, cards, IBANs, tax IDs, SSN and Aadhaar before you store or share text |
 | 🧠 **Optional model assist** | Point it at any local model server (Ollama, LM Studio, vLLM, LocalAI…) to fill custom fields the rules missed. It's off by default. |
 | 🔌 **MCP server** | Lets AI assistants and editors read your local documents with `freeocr mcp` |
@@ -121,6 +125,7 @@ freeocr extract examples/samples/ -o samples.xlsx
 | `POST` | `/v1/extract` | One document → fields, line items, tables, entities (`format=json\|csv\|xlsx\|md\|txt`) |
 | `POST` | `/v1/batch` | Many documents → **one spreadsheet** (default `xlsx`) or JSON |
 | `POST` | `/v1/ocr` | Plain text, page by page |
+| `POST` | `/v1/searchable-pdf` | Scan or image → PDF with an invisible text layer |
 | `POST` | `/v1/redact` | OCR + mask personal data |
 | `POST` | `/v1/export/{fmt}` | Convert (edited) JSON results to xlsx/csv/md |
 | `POST` | `/v1/templates/test` | Try a YAML/JSON template against a file before saving it |
@@ -230,6 +235,7 @@ freeocr extract ./scans -r -o all.xlsx            # whole folder (recursive) →
 freeocr extract statement.pdf --type bank_statement -f csv
 freeocr extract id.jpg --redact                   # mask personal data
 freeocr ocr scan.png --lang deu                   # plain text
+freeocr pdf scan.pdf -o scan-searchable.pdf       # searchable PDF (text layer)
 freeocr watch ./inbox -o out.xlsx                 # autopilot
 freeocr serve --host 0.0.0.0 --port 8000          # API + web UI
 freeocr mcp                                       # MCP server (stdio)
@@ -248,7 +254,7 @@ Add this to any MCP-compatible client (desktop assistants, IDEs, agent framework
 }
 ```
 
-Tools: `extract_document`, `ocr_document`, and `extract_folder` (which saves a spreadsheet). Then ask your assistant something like *"put every invoice in ~/Downloads into invoices.xlsx"*.
+Tools: `extract_document`, `ocr_document`, `make_searchable_pdf`, and `extract_folder` (which saves a spreadsheet). Then ask your assistant something like *"put every invoice in ~/Downloads into invoices.xlsx"*.
 
 ## ⚙️ Configuration
 
@@ -284,7 +290,6 @@ Be realistic: rule-based extraction works best on typed, reasonably clean docume
 
 - [ ] Utility bills, shipping labels and insurance claim extractors
 - [ ] Multi-language field labels (DE/FR/ES/HI keywords)
-- [ ] Searchable-PDF output (text layer over scans)
 - [ ] Webhooks and an email-inbox (IMAP) watcher
 - [ ] Table-structure detection for scanned (image) tables
 
