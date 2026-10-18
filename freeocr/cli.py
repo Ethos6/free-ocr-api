@@ -94,6 +94,17 @@ def cmd_ocr(a):
             print(res["text"])
 
 
+def cmd_pdf(a):
+    from .searchable import make_searchable_pdf
+
+    src = Path(a.input)
+    out = Path(a.output) if a.output else src.with_name(src.stem + "-searchable.pdf")
+    pdf, stats = make_searchable_pdf(src.read_bytes(), src.name, a.lang, a.force_ocr)
+    out.write_bytes(pdf)
+    print(f"wrote {out}  ({stats['pages']} page(s), {stats['ocr_pages']} OCR'd, {stats['kept_pages']} kept)",
+          file=sys.stderr)
+
+
 def cmd_watch(a):
     """Data-entry autopilot: drop files in a folder, rows appear in a spreadsheet."""
     inbox = Path(a.folder)
@@ -217,6 +228,13 @@ def main(argv=None):
     p.add_argument("--force-ocr", action="store_true")
     p.add_argument("-r", "--recursive", action="store_true")
     p.set_defaults(fn=cmd_ocr)
+
+    p = sub.add_parser("pdf", help="make a searchable PDF (invisible text layer) from a scan or image")
+    p.add_argument("input")
+    p.add_argument("-o", "--output", help="output PDF (default: <name>-searchable.pdf)")
+    p.add_argument("--lang", default=os.getenv("FREEOCR_LANG", "eng"))
+    p.add_argument("--force-ocr", action="store_true", help="OCR pages even if they already have text")
+    p.set_defaults(fn=cmd_pdf)
 
     p = sub.add_parser("watch", help="watch a folder and keep a spreadsheet up to date")
     p.add_argument("folder")

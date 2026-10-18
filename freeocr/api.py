@@ -18,6 +18,7 @@ from .extract import DOC_TYPES
 from .ocr import OCRError, available_engines
 from .parsers import redact as redact_text
 from .pipeline import extract_document, ocr_document
+from .searchable import make_searchable_pdf
 from .templates import TemplateError, load_templates, parse_template
 
 MAX_MB = float(os.getenv("FREEOCR_MAX_MB", "25"))
@@ -209,6 +210,17 @@ def export_results(fmt: str, results: list[dict]):
         raise HTTPException(422, f"format must be one of {FORMATS}")
     return Response(export(results, fmt), media_type=MEDIA_TYPES[fmt],
                     headers={"Content-Disposition": f'attachment; filename="extracted.{fmt}"'})
+
+
+@app.post("/v1/searchable-pdf", dependencies=[Depends(auth)])
+async def searchable_pdf(file: UploadFile = File(...), lang: str = Form("eng"), force_ocr: bool = Form(False)):
+    """Turn a scan or image into a PDF with an invisible, selectable text layer."""
+    data = await read_upload(file)
+    pdf, stats = _run(make_searchable_pdf, data, file.filename or "", lang, force_ocr)
+    stem = Path(file.filename or "document").stem
+    return Response(pdf, media_type="application/pdf", headers={
+        "Content-Disposition": f'attachment; filename="{stem}-searchable.pdf"',
+        "X-Pages": str(stats["pages"]), "X-OCR-Pages": str(stats["ocr_pages"])})
 
 
 @app.post("/v1/redact", dependencies=[Depends(auth)])

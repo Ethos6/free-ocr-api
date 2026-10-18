@@ -51,6 +51,20 @@ TOOLS = [
         },
     },
     {
+        "name": "make_searchable_pdf",
+        "description": "Turn a scanned PDF or image into a PDF with an invisible, selectable text layer "
+                       "and save it next to the input (or to 'output').",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Path to a local PDF or image"},
+                "output": {"type": "string", "description": "Output PDF path"},
+                "lang": {"type": "string", "default": "eng"},
+            },
+            "required": ["path"],
+        },
+    },
+    {
         "name": "extract_folder",
         "description": "Extract every supported document in a folder and save one spreadsheet "
                        "(xlsx/csv/json) with a row per document. Returns a summary.",
@@ -92,6 +106,14 @@ def call_tool(name: str, args: dict) -> dict:
         data, fname = _read(args)
         res = ocr_document(data, fname, "auto", args.get("lang", "eng"))
         return {"file": fname, "page_count": res["page_count"], "text": res["text"]}
+    if name == "make_searchable_pdf":
+        from .searchable import make_searchable_pdf
+
+        src = Path(args["path"]).expanduser()
+        out = Path(args.get("output") or src.with_name(src.stem + "-searchable.pdf")).expanduser()
+        pdf, stats = make_searchable_pdf(src.read_bytes(), src.name, args.get("lang", "eng"))
+        out.write_bytes(pdf)
+        return {"output": str(out), **stats}
     if name == "extract_folder":
         from .cli import SUPPORTED
         from .export import export
