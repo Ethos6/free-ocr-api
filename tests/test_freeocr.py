@@ -196,7 +196,7 @@ def test_mcp(samples):
                        capture_output=True, text=True, cwd=ROOT, timeout=120)
     replies = [json.loads(x) for x in p.stdout.splitlines()]
     assert [r["id"] for r in replies] == [1, 2, 3]
-    assert len(replies[1]["result"]["tools"]) == 3
+    assert len(replies[1]["result"]["tools"]) == 4
     data = json.loads(replies[2]["result"]["content"][0]["text"])
     assert data["fields"]["total"] == 345.6
 
@@ -225,3 +225,34 @@ def test_llm_assist(samples, monkeypatch):
     assert seen["url"] == "http://localhost:9/v1/chat/completions"
     assert r["fields"]["store_code"] == "NW-01"
     assert r["fields"]["invoice_number"] == "INV-2026-0042"  # rules win, model only fills gaps
+
+
+# ---------------------------------------------------------------- searchable PDF
+
+@pytest.mark.skipif(not __import__("freeocr.ocr", fromlist=["x"]).tesseract_available(), reason="needs tesseract")
+def test_searchable_pdf(samples, tmp_path):
+    import pdfplumber
+
+    from freeocr.searchable import make_searchable_pdf
+
+    pdf, stats = make_searchable_pdf(samples["invoice_scan"].read_bytes(), "scan.png")
+    assert pdf[:5] == b"%PDF-" and stats == {"pages": 1, "ocr_pages": 1, "kept_pages": 0}
+    with pdfplumber.open(io.BytesIO(pdf)) as d:
+        assert "Northwind" in (d.pages[0].extract_text() or "")
+    # digital pages are copied through, not re-OCR'd
+    _, stats = make_searchable_pdf(samples["invoice_pdf"].read_bytes(), "invoice.pdf")
+    assert stats["kept_pages"] == 1 and stats["ocr_pages"] == 0
+
+    from fastapi.testclient import TestClient
+
+    from freeocr.api import app
+
+    r = TestClient(app).post("/v1/searchable-pdf", files={"file": ("scan.png", samples["receipt"].read_bytes())})
+    assert r.status_code == 200 and r.headers["content-type"] == "application/pdf"
+    assert r.headers["x-ocr-pages"] == "1"
+
+    out = tmp_path / "out.pdf"
+    p = subprocess.run([sys.executable, "-m", "freeocr", "pdf", str(samples["receipt"]), "-o", str(out)],
+                       capture_output=True, text=True, cwd=ROOT)
+    assert p.returncode == 0, p.stderr
+    assert out.read_bytes()[:5] == b"%PDF-"
