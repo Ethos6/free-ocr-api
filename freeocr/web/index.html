@@ -60,6 +60,7 @@
       <label class="chk" id="llmbox" hidden><input id="use_llm" type="checkbox"> Model assist</label>
       <label id="keybox" hidden>API key<input id="apikey" type="password" size="16"></label>
       <button id="go" disabled>Extract</button>
+      <button id="spdf" class="ghost" disabled title="Download a PDF with an invisible, selectable text layer">Searchable PDF</button>
     </div>
     <div id="status" class="muted" style="margin-top:10px"></div>
   </section>
@@ -101,7 +102,7 @@ drop.onkeydown = e => (e.key === "Enter" || e.key === " ") && input.click();
 ["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
 drop.addEventListener("drop", e => pick(e.dataTransfer.files));
 input.onchange = () => pick(input.files);
-function pick(list){ files = [...list]; $("#go").disabled = !files.length;
+function pick(list){ files = [...list]; $("#go").disabled = !files.length; $("#spdf").disabled = !files.length;
   $("#status").textContent = files.length ? `${files.length} file(s) ready: ${files.map(f => f.name).slice(0,5).join(", ")}${files.length > 5 ? "…" : ""}` : ""; }
 
 $("#go").onclick = async () => {
@@ -164,6 +165,18 @@ $("#docs").addEventListener("input", e => {
 });
 $("#clear").onclick = () => { results = []; files = []; input.value = ""; render(); $("#status").textContent = ""; $("#go").disabled = true; };
 
+$("#spdf").onclick = async () => {
+  $("#spdf").disabled = true;
+  for (const f of files) {
+    $("#status").innerHTML = `<span class="spin"></span> Making searchable PDF: ${esc(f.name)}`;
+    const fd = new FormData(); fd.append("file", f); if ($("#lang").value) fd.append("lang", $("#lang").value);
+    const r = await fetch("/v1/searchable-pdf", {method:"POST", body:fd, headers:headers()});
+    if (r.ok) save(await r.blob(), f.name.replace(/\.[^.]+$/, "") + "-searchable.pdf");
+    else $("#status").textContent = "Searchable PDF failed: " + ((await r.json()).detail || r.statusText);
+  }
+  if (!$("#status").textContent.startsWith("Searchable PDF failed")) $("#status").textContent = "Searchable PDF ready.";
+  $("#spdf").disabled = false;
+};
 function save(blob, name){ const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
 function csvCell(v){ v = String(fmt(v)); return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; }
 document.querySelectorAll("[data-exp]").forEach(b => b.onclick = async () => {
