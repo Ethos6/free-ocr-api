@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="free-ocr-api-mark.svg" width="72" alt="free-ocr-api logo">
+
 # 📄 free-ocr-api
 
 ### Free, self-hosted OCR & document data extraction API
@@ -22,6 +24,21 @@
 </div>
 
 ---
+
+## How it works
+
+The API accepts a document or image, detects its format and pages, extracts embedded text where available, and runs a configured OCR engine for scanned pages. It normalizes extracted fields and returns the requested JSON, CSV, or Excel output. The optional folder watcher applies the same pipeline to files as they arrive.
+
+```mermaid
+flowchart TD
+    A[PDF, image, or folder] --> B[Detect format and pages]
+    B --> C{Embedded text available?}
+    C -->|Yes| D[Extract document text]
+    C -->|No| E[Run configured OCR engine]
+    D --> F[Normalize fields]
+    E --> F
+    F --> G[Return JSON, CSV, or Excel]
+```
 
 ## Why?
 
