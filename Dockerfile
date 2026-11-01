@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.15-slim
 
 # Extra OCR languages (Tesseract codes). English is always included.
 # e.g. docker build --build-arg OCR_LANGS="hin deu fra spa por ita ara chi-sim jpn" .
